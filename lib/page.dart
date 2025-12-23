@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../note.dart';
-import '../note_storage.dart';
+import 'note.dart';
+import 'note_storage.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -10,7 +10,7 @@ class NotesPage extends StatefulWidget {
 }
 
 class _NotesPageState extends State<NotesPage> {
-  final NoteStorage _storage = NoteStorage();
+  final NoteFileStorage _storage = NoteFileStorage();
   List<Note> _notes = [];
   bool _isLoading = true;
 
@@ -50,27 +50,25 @@ class _NotesPageState extends State<NotesPage> {
     });
     await _storage.saveNotes(_notes);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Notiz "${removed.title}" gelöscht'),
-          action: SnackBarAction(
-            label: 'Rückgängig',
-            onPressed: () async {
-              setState(() {
-                _notes.insert(index, removed);
-              });
-              await _storage.saveNotes(_notes);
-            },
-          ),
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Notiz "${removed.title}" gelöscht'),
+        action: SnackBarAction(
+          label: 'Rückgängig',
+          onPressed: () async {
+            setState(() {
+              _notes.insert(index, removed);
+            });
+            await _storage.saveNotes(_notes);
+          },
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<Note?> _showNoteDialog({Note? initial}) async {
-    final titleController =
-        TextEditingController(text: initial?.title ?? '');
+    final titleController = TextEditingController(text: initial?.title ?? '');
     final contentController =
         TextEditingController(text: initial?.content ?? '');
 
@@ -80,6 +78,7 @@ class _NotesPageState extends State<NotesPage> {
         title: Text(initial == null ? 'Neue Notiz' : 'Notiz bearbeiten'),
         content: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
@@ -126,7 +125,9 @@ class _NotesPageState extends State<NotesPage> {
     final body = _isLoading
         ? const Center(child: CircularProgressIndicator())
         : _notes.isEmpty
-            ? const Center(child: Text('Noch keine Notizen.\nDrück auf +.'))
+            ? const Center(
+                child: Text('Noch keine Notizen.\nDrück auf +.'),
+              )
             : ListView.builder(
                 itemCount: _notes.length,
                 itemBuilder: (context, index) {
@@ -157,7 +158,7 @@ class _NotesPageState extends State<NotesPage> {
                         final updated =
                             await _showNoteDialog(initial: note);
                         if (updated != null) {
-                          _updateNote(index, updated);
+                          await _updateNote(index, updated);
                         }
                       },
                       trailing: IconButton(
@@ -175,7 +176,9 @@ class _NotesPageState extends State<NotesPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final newNote = await _showNoteDialog();
-          if (newNote != null) _addNote(newNote);
+          if (newNote != null) {
+            await _addNote(newNote);
+          }
         },
         child: const Icon(Icons.add),
       ),
