@@ -1,16 +1,15 @@
 class Note {
   String title;
   String content;
+  DateTime createdAt;
 
-  Note({
-    required this.title,
-    required this.content,
-  });
+  Note({required this.title, required this.content, required this.createdAt});
 
   factory Note.fromJson(Map<String, dynamic> json) {
     return Note(
-      title: json['title'] as String? ?? '',
-      content: json['content'] as String? ?? '',
+      title: json['title'] ?? '',
+      content: json['content'] ?? '',
+      createdAt: DateTime.parse(json['createdAt']),
     );
   }
 
@@ -18,6 +17,7 @@ class Note {
     return {
       'title': title,
       'content': content,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

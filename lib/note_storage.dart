@@ -1,41 +1,38 @@
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'note.dart';
 
-class NoteFileStorage {
-  static const String _fileName = 'notes.json';
+class NoteStorage {
+  static const String _keyNotes = 'notes';
 
-  Future<File> _getFile() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/$_fileName');
-  }
-
+  /// Speichert die Liste der Notizen als JSON in SharedPreferences
   Future<void> saveNotes(List<Note> notes) async {
-    final file = await _getFile();
-    final jsonList = notes.map((n) => n.toJson()).toList();
+    final prefs = await SharedPreferences.getInstance();
+
+    // List<Note> -> List<Map> -> JSON-String
+    final jsonList = notes.map((note) => note.toJson()).toList();
     final jsonString = json.encode(jsonList);
-    await file.writeAsString(jsonString);
+
+    await prefs.setString(_keyNotes, jsonString);
   }
 
+  /// Lädt die Notizen aus SharedPreferences
   Future<List<Note>> loadNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_keyNotes);
+
+    if (jsonString == null || jsonString.isEmpty) {
+      return [];
+    }
+
     try {
-      final file = await _getFile();
-      if (!await file.exists()) {
-        return [];
-      }
-
-      final jsonString = await file.readAsString();
-      if (jsonString.isEmpty) return [];
-
       final List<dynamic> jsonList = json.decode(jsonString);
       return jsonList
           .map((item) => Note.fromJson(item as Map<String, dynamic>))
           .toList();
-    } catch (e) {
-      // Falls etwas schiefgeht, lieber leere Liste zurückgeben
+    } catch (_) {
+      // Falls was schief geht, lieber leer zurückgeben
       return [];
     }
   }
