@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'note.dart';
 import 'note_storage.dart';
 
@@ -39,9 +40,7 @@ class _NotesPageState extends State<NotesPage> {
 
   Future<void> _loadNotes() async {
     final notes = await _storage.loadNotes();
-
-    notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
+    _sortNotes(notes);
     setState(() {
       _notes = notes;
       _filteredNotes = List.from(notes);
@@ -49,9 +48,17 @@ class _NotesPageState extends State<NotesPage> {
     });
   }
 
+  void _sortNotes(List<Note> list) {
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  void _refresh() {
+    _sortNotes(_notes);
+    _applyFilter();
+  }
+
   void _applyFilter() {
     final q = _searchController.text.toLowerCase();
-
     setState(() {
       if (q.isEmpty) {
         _filteredNotes = List.from(_notes);
@@ -63,38 +70,36 @@ class _NotesPageState extends State<NotesPage> {
     });
   }
 
+  int _realIndex(int filteredIndex) =>
+      _notes.indexOf(_filteredNotes[filteredIndex]);
+
   Future<void> _save() async => _storage.saveNotes(_notes);
 
-  Future<void> _addNote(Note n) async {
+  Future<void> _addNote(Note note) async {
     setState(() {
-      _notes.add(n);
-      _notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      _applyFilter();
+      _notes.add(note);
+      _refresh();
     });
     await _save();
   }
 
-  Future<void> _updateNote(int index, Note updated) async {
-    final realIndex = _notes.indexOf(_filteredNotes[index]);
-
+  Future<void> _updateNote(int filteredIndex, Note updated) async {
+    final real = _realIndex(filteredIndex);
     setState(() {
-      _notes[realIndex] = updated;
-      _notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      _applyFilter();
+      _notes[real] = updated;
+      _refresh();
     });
-
     await _save();
   }
 
-  Future<void> _deleteNote(int index) async {
-    final note = _filteredNotes[index];
-    final realIndex = _notes.indexOf(note);
+  Future<void> _deleteNote(int filteredIndex) async {
+    final note = _filteredNotes[filteredIndex];
+    final real = _realIndex(filteredIndex);
 
     setState(() {
-      _notes.removeAt(realIndex);
-      _applyFilter();
+      _notes.removeAt(real);
+      _refresh();
     });
-
     await _save();
 
     if (!mounted) return;
@@ -106,8 +111,8 @@ class _NotesPageState extends State<NotesPage> {
           label: 'Rückgängig',
           onPressed: () async {
             setState(() {
-              _notes.insert(realIndex, note);
-              _applyFilter();
+              _notes.insert(real, note);
+              _refresh();
             });
             await _save();
           },
@@ -116,30 +121,36 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
-  String _formatDate(DateTime d) =>
-      "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year} "
-      "${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}";
+  String _formatDate(DateTime d) {
+    return '${d.day.toString().padLeft(2, '0')}.'
+        '${d.month.toString().padLeft(2, '0')}.'
+        '${d.year} '
+        '${d.hour.toString().padLeft(2, '0')}:'
+        '${d.minute.toString().padLeft(2, '0')}';
+  }
 
-  // ---------------- Dialog ----------------
   Future<Note?> _showNoteDialog({Note? initial}) async {
-    final title = TextEditingController(text: initial?.title ?? '');
-    final content = TextEditingController(text: initial?.content ?? '');
+    final titleController = TextEditingController(text: initial?.title ?? '');
+    final contentController = TextEditingController(
+      text: initial?.content ?? '',
+    );
 
-    return showDialog(
+    return showDialog<Note>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(initial == null ? "Neue Notiz" : "Notiz bearbeiten"),
+        title: Text(initial == null ? 'Neue Notiz' : 'Notiz bearbeiten'),
         content: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
                 width: 420,
                 child: TextField(
-                  controller: title,
+                  controller: titleController,
                   maxLength: 40,
                   decoration: const InputDecoration(
-                    labelText: "Titel",
+                    labelText: 'Titel',
                     border: OutlineInputBorder(),
                   ),
                   style: const TextStyle(fontSize: 18),
@@ -150,16 +161,17 @@ class _NotesPageState extends State<NotesPage> {
                 width: 420,
                 height: 240,
                 child: TextField(
-                  controller: content,
+                  controller: contentController,
                   maxLength: 250,
                   decoration: const InputDecoration(
-                    labelText: "Inhalt",
+                    labelText: 'Inhalt',
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
             ],
@@ -168,24 +180,24 @@ class _NotesPageState extends State<NotesPage> {
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Abbrechen"),
+            child: const Text('Abbrechen'),
           ),
           FilledButton(
             onPressed: () {
-              final t = title.text.trim();
-              final c = content.text.trim();
+              final title = titleController.text.trim();
+              final content = contentController.text.trim();
 
-              if (t.isEmpty && c.isEmpty) {
+              if (title.isEmpty && content.isEmpty) {
                 Navigator.pop(context);
                 return;
               }
 
               Navigator.pop(
                 context,
-                Note(title: t, content: c, createdAt: DateTime.now()),
+                Note(title: title, content: content, createdAt: DateTime.now()),
               );
             },
-            child: const Text("Speichern"),
+            child: const Text('Speichern'),
           ),
         ],
       ),
@@ -197,15 +209,15 @@ class _NotesPageState extends State<NotesPage> {
     final body = _isLoading
         ? const Center(child: CircularProgressIndicator())
         : _filteredNotes.isEmpty
-        ? const Center(child: Text("Keine Notizen"))
+        ? const Center(child: Text('Keine Notizen'))
         : ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             itemCount: _filteredNotes.length,
-            itemBuilder: (_, i) {
+            itemBuilder: (context, i) {
               final note = _filteredNotes[i];
 
               return Dismissible(
-                key: ValueKey(note.createdAt.toString()),
+                key: ValueKey(note.createdAt.toIso8601String()),
                 direction: DismissDirection.endToStart,
                 background: Container(
                   margin: const EdgeInsets.symmetric(vertical: 6),
@@ -227,7 +239,9 @@ class _NotesPageState extends State<NotesPage> {
                     borderRadius: BorderRadius.circular(16),
                     onTap: () async {
                       final updated = await _showNoteDialog(initial: note);
-                      if (updated != null) _updateNote(i, updated);
+                      if (updated != null) {
+                        await _updateNote(i, updated);
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(14),
@@ -239,14 +253,14 @@ class _NotesPageState extends State<NotesPage> {
                               children: [
                                 Text(
                                   note.title.isEmpty
-                                      ? "(Ohne Titel)"
+                                      ? '(Ohne Titel)'
                                       : note.title,
                                   style: const TextStyle(fontSize: 18),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  "Geändert: ${_formatDate(note.createdAt)}",
+                                  'Geändert: ${_formatDate(note.createdAt)}',
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 if (note.content.isNotEmpty) ...[
@@ -275,11 +289,11 @@ class _NotesPageState extends State<NotesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Jakupovic Notizapp"),
+        title: const Text('Jakupovic Notizapp'),
         actions: [
-          const Icon(Icons.light_mode),
+          const Icon(Icons.light_mode, size: 20),
           Switch(value: widget.isDarkMode, onChanged: widget.onThemeChanged),
-          const Icon(Icons.dark_mode),
+          const Icon(Icons.dark_mode, size: 20),
           const SizedBox(width: 8),
         ],
         bottom: PreferredSize(
@@ -289,7 +303,7 @@ class _NotesPageState extends State<NotesPage> {
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                hintText: "Suche nach Titel...",
+                hintText: 'Suche nach Titel…',
                 prefixIcon: Icon(Icons.search),
                 filled: true,
                 border: OutlineInputBorder(
@@ -304,10 +318,12 @@ class _NotesPageState extends State<NotesPage> {
       body: body,
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text("Neue Notiz"),
+        label: const Text('Neue Notiz'),
         onPressed: () async {
-          final n = await _showNoteDialog();
-          if (n != null) _addNote(n);
+          final note = await _showNoteDialog();
+          if (note != null) {
+            await _addNote(note);
+          }
         },
       ),
     );

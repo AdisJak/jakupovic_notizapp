@@ -31,10 +31,6 @@ class _NotesAppState extends State<NotesApp> {
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(fontSize: 16),
-        ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
@@ -43,10 +39,6 @@ class _NotesAppState extends State<NotesApp> {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(fontSize: 16),
-        ),
       ),
       home: NotesPage(
         isDarkMode: _themeMode == ThemeMode.dark,
