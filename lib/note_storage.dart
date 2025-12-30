@@ -4,13 +4,14 @@ import 'dart:io';
 import 'note.dart';
 
 class NoteStorage {
+  // Dateiname für die gespeicherten Notizen
   static const _fileName = 'notes.json';
 
   Future<File> _getFile() async {
-    // aktueller Projekt/Programm-Ordner
+    // aktueller Projekt Ordner
     final dir = Directory.current;
 
-    // Unterordner "data" anlegen (falls nicht vorhanden)
+    // Unterordner "data" anlegen
     final folder = Directory('${dir.path}/data');
     if (!await folder.exists()) {
       await folder.create(recursive: true);
@@ -19,6 +20,7 @@ class NoteStorage {
     return File('${folder.path}/$_fileName');
   }
 
+  // Notizen laden aus der JSON Datei
   Future<List<Note>> loadNotes() async {
     try {
       final file = await _getFile();
@@ -36,9 +38,11 @@ class NoteStorage {
     }
   }
 
+  // Notizen speichern in der JSON Datei
   Future<void> saveNotes(List<Note> notes) async {
     final file = await _getFile();
     final jsonList = notes.map((e) => e.toJson()).toList();
+    // Formatierung für JSON Datei
     final jsonString = const JsonEncoder.withIndent('  ').convert(jsonList);
     await file.writeAsString(jsonString, flush: true);
   }

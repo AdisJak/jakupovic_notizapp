@@ -38,6 +38,7 @@ class _NotesPageState extends State<NotesPage> {
     super.dispose();
   }
 
+  // Notizen laden
   Future<void> _loadNotes() async {
     final notes = await _storage.loadNotes();
     _sortNotes(notes);
@@ -48,15 +49,18 @@ class _NotesPageState extends State<NotesPage> {
     });
   }
 
+  // Sortieren nach Datum
   void _sortNotes(List<Note> list) {
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  // Aktualisieren
   void _refresh() {
     _sortNotes(_notes);
     _applyFilter();
   }
 
+  // Filter
   void _applyFilter() {
     final q = _searchController.text.toLowerCase();
     setState(() {
@@ -73,8 +77,10 @@ class _NotesPageState extends State<NotesPage> {
   int _realIndex(int filteredIndex) =>
       _notes.indexOf(_filteredNotes[filteredIndex]);
 
+  // Notizen speichern
   Future<void> _save() async => _storage.saveNotes(_notes);
 
+  // Notiz hinzufügen
   Future<void> _addNote(Note note) async {
     setState(() {
       _notes.add(note);
@@ -83,6 +89,7 @@ class _NotesPageState extends State<NotesPage> {
     await _save();
   }
 
+  // Notiz aktualisieren
   Future<void> _updateNote(int filteredIndex, Note updated) async {
     final real = _realIndex(filteredIndex);
     setState(() {
@@ -92,6 +99,7 @@ class _NotesPageState extends State<NotesPage> {
     await _save();
   }
 
+  // Notiz löschen
   Future<void> _deleteNote(int filteredIndex) async {
     final note = _filteredNotes[filteredIndex];
     final real = _realIndex(filteredIndex);
@@ -121,6 +129,7 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
+  // Datum formatieren
   String _formatDate(DateTime d) {
     return '${d.day.toString().padLeft(2, '0')}.'
         '${d.month.toString().padLeft(2, '0')}.'
@@ -134,7 +143,7 @@ class _NotesPageState extends State<NotesPage> {
     final contentController = TextEditingController(
       text: initial?.content ?? '',
     );
-
+    // Notizbox
     return showDialog<Note>(
       context: context,
       builder: (context) => AlertDialog(
@@ -216,6 +225,7 @@ class _NotesPageState extends State<NotesPage> {
             itemBuilder: (context, i) {
               final note = _filteredNotes[i];
 
+              // Einzelne Notiz
               return Dismissible(
                 key: ValueKey(note.createdAt.toIso8601String()),
                 direction: DismissDirection.endToStart,

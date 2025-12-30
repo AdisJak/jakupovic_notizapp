@@ -27,11 +27,13 @@ class _NotesAppState extends State<NotesApp> {
       title: 'Jakupovic Notizapp',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
+      // LightMode
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      // DarkMode
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
@@ -40,6 +42,7 @@ class _NotesAppState extends State<NotesApp> {
         ),
         useMaterial3: true,
       ),
+      // Startseite
       home: NotesPage(
         isDarkMode: _themeMode == ThemeMode.dark,
         onThemeChanged: _toggleTheme,
